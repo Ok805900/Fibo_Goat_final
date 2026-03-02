@@ -178,31 +178,30 @@ class FiboBotApplication:
             logger.error(f"❌ Erreur arrêt: {e}", exc_info=True)
 
 
+
 async def main():
     """Fonction principale"""
     app = FiboBotApplication()
     
-    loop = asyncio.get_event_loop()
-
-    def signal_handler(sig, frame):
-        """Gestionnaire de signaux"""
-        logger.info("Signal reçu, arrêt du bot...")
-        asyncio.create_task(app.stop())
-        sys.exit(0)
-
-    # Enregistrer les gestionnaires de signaux
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
     # Démarrer le bot
-    await app.start()
-
+    success = await app.start()
+    
+    if not success:
+        logger.error("❌ Échec du démarrage du bot")
+        return
+    
+    # Garder le programme en vie jusqu'à ce que le bot s'arrête
+    try:
+        while app.running:
+            await asyncio.sleep(1)
+    except asyncio.CancelledError:
+        pass
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("Bot arrêté par l'utilisateur")
+        logger.info("🛑 Bot arrêté par l'utilisateur")
     except Exception as e:
-        logger.error(f"Erreur fatale: {e}", exc_info=True)
+        logger.error(f"❌ Erreur fatale: {e}", exc_info=True)
         sys.exit(1)
