@@ -105,6 +105,7 @@ class FiboBotApplication:
                 self.api_client,
                 self.db,
                 self.application,
+            )
     async def start(self):
         """Démarrer le bot"""
         try:
