@@ -105,41 +105,55 @@ class FiboBotApplication:
                 self.api_client,
                 self.db,
                 self.application,
-                self.chat_id,
-            )
-            scheduler = self.scheduler_manager.setup()
-            logger.info(f"✅ Scheduler configuré")
-
-            logger.info(f"✅ Bot Fibonacci initialisé avec succès!")
-            logger.info(f"📊 Paires surveillées: {', '.join(PAIRS)}")
-            logger.info(f"💾 Crédits API: {self.api_client.get_credits_remaining()}/800")
-
-            return True
-
-        except Exception as e:
-            logger.error(f"❌ Erreur initialisation: {e}", exc_info=True)
-            return False
-
-    def start_flask(self):
-        """Démarrer le serveur Flask dans un thread séparé"""
-        try:
-            port = int(os.getenv("PORT", 10000))
-            logger.info(f"🌐 Démarrage serveur Flask sur port {port}")
-            flask_app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False, threaded=True)
-        except Exception as e:
-            logger.error(f"❌ Erreur Flask: {e}", exc_info=True)
-
     async def start(self):
         """Démarrer le bot"""
         try:
             if not await self.initialize():
                 logger.error("Impossible d'initialiser le bot")
                 return False
-
+            
             logger.info("🎯 Démarrage du bot...")
-
+            
             # Démarrer le serveur Flask dans un thread séparé
             self.flask_thread = Thread(target=self.start_flask, daemon=True)
+            self.flask_thread.start()
+            logger.info("✅ Serveur Flask démarré")
+            
+            # Démarrer le scheduler
+            self.scheduler_manager.start()
+            logger.info("✅ Scheduler démarré")
+            
+            # Démarrer le bot Telegram avec la nouvelle API v20+
+            self.running = True
+            logger.info("✅ Application Telegram initialisée")
+            logger.info("✅ Application Telegram démarrée")
+            logger.info("🎯 Démarrage du polling...")
+            
+            # Initialiser et démarrer l'application
+            await self.application.initialize()
+            await self.application.start()
+            
+            # Lancer le polling en arrière-plan
+            asyncio.create_task(self._run_polling())
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Erreur démarrage: {e}", exc_info=True)
+            return False
+    
+    async def _run_polling(self):
+        """Lancer le polling dans une tâche séparée"""
+        try:
+            await self.application.updater.start_polling(
+                allowed_updates=["message", "callback_query"]
+            )
+            # Garder le polling actif
+            while self.running:
+                await asyncio.sleep(1)
+        except Exception as e:
+            logger.error(f"❌ Erreur polling: {e}", exc_info=True)
+
             self.flask_thread.start()
             logger.info("✅ Serveur Flask démarré")
 
