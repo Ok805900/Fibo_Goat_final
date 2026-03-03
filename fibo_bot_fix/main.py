@@ -143,7 +143,7 @@ class FiboBotApplication:
             logger.error(f"❌ Erreur démarrage: {e}", exc_info=True)
             return False
     
-    async def _run_polling(self):
+async def _run_polling(self):
         """Lancer le polling dans une tâche séparée"""
         try:
             await self.application.updater.start_polling(
