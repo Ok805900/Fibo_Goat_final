@@ -57,95 +57,90 @@ class FiboBotApplication:
         self.running = False
 
     async def initialize(self):
-        """Initialiser tous les composants"""
-        try:
-            logger.info("🚀 Initialisation du Forex Fibonacci Bot...")
+    """Initialiser tous les composants"""
+    logger.info("🚀 Initialisation du Forex Fibonacci Bot...")
 
-            # Initialiser les secrets
-            telegram_token = Secrets.get_telegram_token()
-            twelvedata_key = Secrets.get_twelvedata_api_key()
+    # Initialiser les secrets
+    telegram_token = Secrets.get_telegram_token()
+    twelvedata_key = Secrets.get_twelvedata_api_key()
 
-            logger.info(f"✅ Secrets chargés")
+    logger.info(f"✅ Secrets chargés")
 
-            # Initialiser le client API
-            self.api_client = TwelveDataClient(twelvedata_key)
-            logger.info(f"✅ Client Twelve Data initialisé")
+    # Initialiser le client API
+    self.api_client = TwelveDataClient(twelvedata_key)
+    logger.info(f"✅ Client Twelve Data initialisé")
 
-            # Initialiser la base de données
-            self.db = Database("fibo_bot.db")
-            logger.info(f"✅ Base de données initialisée")
+    # Initialiser la base de données
+    self.db = Database("fibo_bot.db")
+    logger.info(f"✅ Base de données initialisée")
 
-            # Initialiser le bot Telegram avec la nouvelle API v20+
-            self.application = (
-                Application.builder()
-                .token(telegram_token)
-                .build()
-            )
-            logger.info(f"✅ Bot Telegram configuré (v20+)")
+    # Initialiser le bot Telegram avec la nouvelle API v20+
+    self.application = (
+    Application.builder()
+    .token(telegram_token)
+    .build()
+    )
+    logger.info(f"✅ Bot Telegram configuré (v20+)")
 
-            # Initialiser les handlers
-            handlers = CommandHandlers(self.db)
+    # Initialiser les handlers
+    handlers = CommandHandlers(self.db)
 
-            self.application.add_handler(CommandHandler("start", handlers.handle_start))
-            self.application.add_handler(CommandHandler("status", handlers.handle_status))
-            self.application.add_handler(CommandHandler("pairs", handlers.handle_pairs))
-            self.application.add_handler(CommandHandler("history", handlers.handle_history))
-            self.application.add_handler(CommandHandler("stats", handlers.handle_stats))
+    self.application.add_handler(CommandHandler("start", handlers.handle_start))
+    self.application.add_handler(CommandHandler("status", handlers.handle_status))
+    self.application.add_handler(CommandHandler("pairs", handlers.handle_pairs))
+    self.application.add_handler(CommandHandler("history", handlers.handle_history))
+    self.application.add_handler(CommandHandler("stats", handlers.handle_stats))
 
-            self.application.add_error_handler(handlers.handle_error)
+    self.application.add_error_handler(handlers.handle_error)
 
-            logger.info(f"✅ Handlers Telegram configurés")
+    logger.info(f"✅ Handlers Telegram configurés")
 
-            # Pour les tests, utiliser un chat_id par défaut
-            # En production, ce serait configuré différemment
-            self.chat_id = 0  # À remplacer par l'ID du chat réel
+    # Pour les tests, utiliser un chat_id par défaut
+    # En production, ce serait configuré différemment
+    self.chat_id = 0  # À remplacer par l'ID du chat réel
 
-            # Initialiser le scheduler
-            self.scheduler_manager = SchedulerManager(
-                self.api_client,
-                self.db,
-                self.application,
-            )
-    async def start(self):
-        except Exception as e:
-            logger.error(f"❌ Erreur initialisation: {e}", exc_info=True)
+    # Initialiser le scheduler
+    self.scheduler_manager = SchedulerManager(
+    self.api_client,
+    self.db,
+    self.application,
+    )
+    """Démarrer le bot"""
+    try:
+    if not await self.initialize():
+            logger.error("Impossible d'initialiser le bot")
             return False
-        """Démarrer le bot"""
-        try:
-            if not await self.initialize():
-                logger.error("Impossible d'initialiser le bot")
-                return False
-            
-            logger.info("🎯 Démarrage du bot...")
-            
-            # Démarrer le serveur Flask dans un thread séparé
-            self.flask_thread = Thread(target=self.start_flask, daemon=True)
-            self.flask_thread.start()
-            logger.info("✅ Serveur Flask démarré")
-            
-            # Démarrer le scheduler
-            self.scheduler_manager.start()
-            logger.info("✅ Scheduler démarré")
-            
-            # Démarrer le bot Telegram avec la nouvelle API v20+
-            self.running = True
-            logger.info("✅ Application Telegram initialisée")
-            logger.info("✅ Application Telegram démarrée")
-            logger.info("🎯 Démarrage du polling...")
-            
-            # Initialiser et démarrer l'application
-            await self.application.initialize()
-            await self.application.start()
-            
-            # Lancer le polling en arrière-plan
-            asyncio.create_task(self._run_polling())
-            
-            return True
-            
-        except Exception as e:
-            logger.error(f"❌ Erreur démarrage: {e}", exc_info=True)
-            return False
-    
+        
+        logger.info("🎯 Démarrage du bot...")
+        
+        # Démarrer le serveur Flask dans un thread séparé
+        self.flask_thread = Thread(target=self.start_flask, daemon=True)
+        self.flask_thread.start()
+        logger.info("✅ Serveur Flask démarré")
+        
+        # Démarrer le scheduler
+        self.scheduler_manager.start()
+        logger.info("✅ Scheduler démarré")
+        
+        # Démarrer le bot Telegram avec la nouvelle API v20+
+        self.running = True
+        logger.info("✅ Application Telegram initialisée")
+        logger.info("✅ Application Telegram démarrée")
+        logger.info("🎯 Démarrage du polling...")
+        
+        # Initialiser et démarrer l'application
+        await self.application.initialize()
+        await self.application.start()
+        
+        # Lancer le polling en arrière-plan
+        asyncio.create_task(self._run_polling())
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Erreur démarrage: {e}", exc_info=True)
+        return False
+
 async def _run_polling(self):
         """Lancer le polling dans une tâche séparée"""
         try:
