@@ -107,6 +107,9 @@ class FiboBotApplication:
                 self.application,
             )
     async def start(self):
+        except Exception as e:
+            logger.error(f"❌ Erreur initialisation: {e}", exc_info=True)
+            return False
         """Démarrer le bot"""
         try:
             if not await self.initialize():
